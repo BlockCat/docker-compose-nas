@@ -8,12 +8,14 @@ services:
     environment:
       - MINIDLNA_FRIENDLY_NAME=SuperMovies
     volumes:
-      - ./dlna/media:/media
+      - ./dlna/minidlna.conf:/etc/minidlna.conf    
+      - /disk/Video:/media/video
+      - /disk/Photo:/media/image
 
   samba:
     image: dperson/samba
     volumes:
-      - ./samba:/mount
+      - /disk:/mount
     ports:
       - 137:137/udp
       - 138:138/udp
@@ -32,7 +34,7 @@ services:
       - PUID=1000
       - PGID=1000
     volumes:
-      - ./syncthing:/var/syncthing
+      - /disk/Sync:/var/syncthing
     network_mode: host
     restart: unless-stopped
 
@@ -43,17 +45,18 @@ services:
       - PUID=1000
       - PGID=1000
     volumes:
-      - ./transmission/downloads:/downloads
+      - disk/Video:/downloads/complete
+      - disk/Torrents:/downloads/incomplete
       - ./transmission/config:/config
       - ./transmission/watch:/watch
-    ports:
-      - 9091:9091
-      - 51413:51413
-      - 51413:51413/udp
+    # ports:
+    #   - 9091:9091
+    #   - 51413:51413
+    #   - 51413:51413/udp
     restart: unless-stopped
     networks:
       - default
-    # network_mode: service:wireguard
+    network_mode: service:wireguard
     depends_on:
       - wireguard
 
@@ -69,9 +72,9 @@ services:
       - TZ=Europe/Amsterdam
     volumes:
       - ./wireguard:/config
-      - ./lib/modules:/lib/modules
+      - /lib/modules:/lib/modules
     ports:
-      # - 51820:51820/udp
+      - 51820:51820/udp
 
       # Transmission
       - 9091:9091
