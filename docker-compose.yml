@@ -1,0 +1,91 @@
+version: "3.7"
+services:
+  dlna:
+    image: vladgh/minidlna
+    container_name: dlna
+    ports:
+      - 8200:8200
+    environment:
+      - MINIDLNA_FRIENDLY_NAME=SuperMovies
+    volumes:
+      - ./dlna/media:/media
+
+  samba:
+    image: dperson/samba
+    volumes:
+      - ./samba:/mount
+    ports:
+      - 137:137/udp
+      - 138:138/udp
+      - 139:139/tcp
+      - 445:445/tcp
+    restart: unless-stopped
+    networks:
+      - default
+
+  syncthing:
+    image: syncthing/syncthing
+    container_name: syncthing
+    hostname: my-syncthing
+    environment:
+      - STGUIADDRESS=
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./syncthing:/var/syncthing
+    network_mode: host
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./transmission/downloads:/downloads
+      - ./transmission/config:/config
+      - ./transmission/watch:/watch
+    ports:
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+    networks:
+      - default
+    # network_mode: service:wireguard
+    depends_on:
+      - wireguard
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Amsterdam
+    volumes:
+      - ./wireguard:/config
+      - ./lib/modules:/lib/modules
+    ports:
+      # - 51820:51820/udp
+
+      # Transmission
+      - 9091:9091
+      - 51413:51413
+      - 51413:51413/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      # - net.ipv6.conf.all.disable_ipv6=0
+    restart: unless-stopped
+    networks:
+      - default
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "https://airvpn.org/api/whatismyip/"]
+networks:
+  default:
+    driver: bridge
+    # enable_ipv6: true

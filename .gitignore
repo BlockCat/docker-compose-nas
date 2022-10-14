@@ -1,0 +1,5 @@
+./syncthing
+./samba
+./transmission/downloads
+./trannsmissin/watch
+./wireguard/*.conf
