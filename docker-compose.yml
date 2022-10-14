@@ -2,18 +2,19 @@ version: "3.7"
 services:
   dlna:
     image: vladgh/minidlna
-    container_name: dlna
-    ports:
-      - 8200:8200
+    container_name: dlna    
     environment:
       - MINIDLNA_FRIENDLY_NAME=SuperMovies
+      - MINIDLNA_MEDIA_DIR_1=V,/media/video
+      - MINIDLNA_MEDIA_DIR_2=P,/media/image
     volumes:
-      - ./dlna/minidlna.conf:/etc/minidlna.conf    
       - /disk/Video:/media/video
       - /disk/Photo:/media/image
+    network_mode: host
 
   samba:
     image: dperson/samba
+    container_name: samba
     volumes:
       - /disk:/mount
     ports:
@@ -22,6 +23,8 @@ services:
       - 139:139/tcp
       - 445:445/tcp
     restart: unless-stopped
+    env_file:
+      - samba.env
     networks:
       - default
 
@@ -41,21 +44,20 @@ services:
   transmission:
     image: lscr.io/linuxserver/transmission:latest
     container_name: transmission
+    env_file:
+      - transmission.env
     environment:
       - PUID=1000
-      - PGID=1000
+      - PGID=1000      
     volumes:
-      - disk/Video:/downloads/complete
-      - disk/Torrents:/downloads/incomplete
+      - /disk/Torrents:/downloads
       - ./transmission/config:/config
       - ./transmission/watch:/watch
     # ports:
     #   - 9091:9091
     #   - 51413:51413
     #   - 51413:51413/udp
-    restart: unless-stopped
-    networks:
-      - default
+    restart: unless-stopped    
     network_mode: service:wireguard
     depends_on:
       - wireguard
@@ -82,12 +84,12 @@ services:
       - 51413:51413/udp
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
-      # - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.all.disable_ipv6=0
     restart: unless-stopped
     networks:
       - default
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "https://airvpn.org/api/whatismyip/"]
+    healthcheck:
+      test: "curl -f https://airvpn.org/api/whatismyip/ | jq -e .airvpn"
 networks:
   default:
     driver: bridge

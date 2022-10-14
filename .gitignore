@@ -3,3 +3,4 @@
 ./transmission/downloads
 ./trannsmissin/watch
 ./wireguard/*.conf
+*.env
